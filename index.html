@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!--Provides an HTTP header for the information/value of content attribute-->
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+    <!--Setting the viewport to make website look good on all devices-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--Leaflet CSS-->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+        integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+        crossorigin="" />
+
+    <!--Specifies the URL of external script file (absolute URL)-->
+    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.8.0/leaflet.js"></script>
+    <script src="https://momentjs.com/downloads/moment.js"></script>
+
+    <!--Title of HTML Page-->
+    <title>Assignment 5 - Leaflet + OneMap</title>
+</head>
+<style>
+    #mapdiv {
+        width: 1400px;
+        height: 700px;
+    }
+
+    #main-body {
+        margin: 0 auto;
+    }
+
+    body {
+        text-align: center;
+        justify-content: center;
+        align-items: center;
+        color: black;
+    }
+</style>
+
+<body>
+
+    <h1>Singapore Map</h1>
+    <div class="main-body">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+            <div class="card">
+                <p>Last Updated at <span id="time"></span></p>
+            </div>
+        </div>
+    </div>
+    <div id='mapdiv' style='height:800px;'></div>
+
+</body>
+
+<script>
+    // Reuse API code from Assignment 1
+    $(document).ready(function () {
+        $.ajax({
+            url: 'https://api.data.gov.sg/v1/environment/psi',
+            method: "GET",
+            data: $('#psi-details').serialize(),
+            dataType: "json",
+            success: function (data) {
+                var timestamp = data.items[0].update_timestamp;
+                timestamp = moment(timestamp).format("DD MMM YYYY, hh:mm a");
+                document.getElementById("time").innerHTML = timestamp;
+                var psi = data.items[0].readings["psi_twenty_four_hourly"];
+                var region = data.region_metadata;
+                //console.log(psi);
+                //console.log(region);
+
+                var region_size = Object.keys(region).length;
+                for (const [k, v] of Object.entries(psi)) {
+                    for (let i = 0; i < region_size; i++) {
+                        if (region[i].name == k) {
+                            marker(
+                                map,
+                                region[i].label_location.latitude,
+                                region[i].label_location.longitude,
+                                v
+                            )
+                        }
+                        var icon = L.marker([
+                            region[i].label_location.latitude,
+                            region[i].label_location.longitude,
+
+                        ], {
+                            icon: L.divIcon({
+                                className: "psiName",
+                                html: psi[region[i].name]
+                            })
+                        });
+                        icon.addTo(map)
+                    }
+                }
+            }
+        });
+    });
+
+    // Display marker on the map
+    function marker(map, latitude, longitude) {
+        //console.log(long)
+        var circle = L.circle([latitude, longitude], {
+            color: '#ff0000',
+            fillColor: '#ff0000',
+            fillOpacity: 0.5,
+            radius: 1300,
+        }).addTo(map)
+    }
+
+    // Reference Link: https://www.onemap.gov.sg/docs/maps/
+    var center = L.bounds([1.56073, 104.11475], [1.16, 103.502]).getCenter()
+    var map = L.map('mapdiv').setView([center.x, center.y], 12)
+
+    map.setMaxBounds([
+        [1.56073, 104.1147],
+        [1.16, 103.502],
+    ])
+
+    var basemap = L.tileLayer(
+        'https://maps-{s}.onemap.sg/v3/Default/{z}/{x}/{y}.png',
+        {
+            detectRetina: true,
+            maxZoom: 18,
+            minZoom: 11,
+            // Do not remove this attribution
+            attribution:
+                '<img src="https://www.onemap.gov.sg/docs/maps/images/oneMap64-01.png" style="height:20px;width:20px;"/> OneMap | Map data &copy; contributors, <a href="http://SLA.gov.sg">Singapore Land Authority</a>',
+        }
+    )
+
+    // Launch the map
+    basemap.addTo(map)
+
+</script>
+</html>
